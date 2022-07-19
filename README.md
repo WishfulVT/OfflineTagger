@@ -29,7 +29,8 @@ Using this command requires a YouTube developer API key. Obtain yours for free h
 This can be saved into manual_tagger.py in the `API_KEY` variable, or you can just paste it in when prompted when calling `!yt_start`.
 
 An example of the `!yt_start` command is given below:
-![!yt_start example](images/yt_start.png)
+
+![!yt_start example](/images/yt_start.png)
 
 #### Creating timestamps
 Once the program is running, simply type any string, so long as it isn't preceded by the '!' key. 
