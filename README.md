@@ -15,8 +15,6 @@ Once you have the file, run it from within the command-line with `py manual_tagg
 
 The manual_tagger.py file was written and tested in Python 3.10, but should be compatible with Python 3.7 and up.
 
-The sole dependency of manual_tagger is the datetime module.
-
 ---
 
 ## Using the tagger
