@@ -9,7 +9,9 @@ Simply clone the repository or download the Python file directly.
 ```
 git clone https://github.com/WishfulVT/OfflineTagger
 ```
-Once you have the file, run it from within the command-line with `python manual_tagger.py`, or just launch Python's IDLE if you're a light mode enthusiast ~~like me~~.
+NEW: As of version 1.1, you additionally need to **install required modules** by calling `pip install -r requirements.txt`.
+
+Once you have the file, run it from within the command-line with `py manual_tagger.py`, or just launch Python's IDLE if you're a light mode enthusiast ~~like me~~.
 
 The manual_tagger.py file was written and tested in Python 3.10, but should be compatible with Python 3.7 and up.
 
@@ -18,6 +20,16 @@ The sole dependency of manual_tagger is the datetime module.
 ---
 
 ## Using the tagger
+
+#### Version 1.1: Setting the tagger's start time
+The OfflineTagger starts timestamps at 0 and counts for you, this is the program's main draw. In order to sync this start time with the start time of a YouTube livestream, call `!yt_start URL`, with a valid YouTube URL or just the 11-digit identifier.
+This will adjust the start time such that all future timestamps are made to match the current stream time. Existing tags can also be updated by typing 'Y' when prompted.
+
+Using this command requires a YouTube developer API key. Obtain yours for free here: https://console.cloud.google.com/apis/dashboard
+This can be saved into manual_tagger.py in the `API_KEY` variable, or you can just paste it in when prompted when calling `!yt_start`.
+
+An example of the `!yt_start` command is given below:
+![!yt_start example](images/yt_start.png)
 
 #### Creating timestamps
 Once the program is running, simply type any string, so long as it isn't preceded by the '!' key. 
