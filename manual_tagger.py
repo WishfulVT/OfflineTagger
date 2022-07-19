@@ -1,5 +1,9 @@
-#Python 3.7+
+#Python 3.10
+#Version 1.1
 
+from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
+from google.auth.exceptions import DefaultCredentialsError
 import datetime
 
 # TagTime objects hold a tag's displayed time, as (H:)MM:SS
@@ -135,7 +139,7 @@ def adjust_tag(tag_index, tag_delta, new_text):
 # adjusts on all tags within the [lower, upper) range as specified in the
 # command, and adjusts aren't stored anywhere the way they are in other
 # tagging tools.
-def offset_tags(lower, delta, upper):
+def offset_tags(lower, delta, upper = 24*3600):
     tags_adjusted = 0
     tagtimes_to_adjust = list()
     
@@ -187,11 +191,78 @@ def delete_tag(index):
     print(f'Deleted tag: {tagtime.tagtime} {tt}')
     return ind
 
+# Takes a YouTube URL and returns only the identifier
+def trim_yt_url(URL):
+    if "youtu.be" in str(URL):
+        return str(URL.split("youtu.be/")[1][:11])
+    elif "youtube.com/watch?v=" in str(URL):
+        return str(URL.split("youtube.com/watch?v=")[1][:11])
+    return URL
+
+# Retrieves the actual start time of a youtube URL. See the SDU
+# for similar code.
+def get_yt_start_time(URL, api_key = ""):
+    if len(api_key) < 1:
+        api_key = str(input("Enter your API key:\n"))
+    try:
+        youtube = build('youtube', 'v3', developerKey = api_key)
+        request =  youtube.videos().list(
+            part='liveStreamingDetails',
+            id=URL
+        )
+        response = request.execute()
+        
+        # The response contains a dictionary of items. We care
+        # about 'actualStartTime' and nothing else.
+        if response == None or len(response['items']) == 0:
+            print("Youtube URL/ID not found")
+            return None
+        elif "liveStreamingDetails" not in response['items'][0] or "actualStartTime" not in response['items'][0]["liveStreamingDetails"]:
+            print(f'No stream start time found for ID {URL}')
+            return None
+        else:
+            return response['items'][0]["liveStreamingDetails"]["actualStartTime"]
+        
+    except (HttpError, DefaultCredentialsError):
+        print("YouTube URL/ID not found or invalid API key")
+        return None
+
+# Returns a new starttime datetime based on a youtube URL/ID
+def adjust_start(URL, api_key, starttime):
+    new_start_string = get_yt_start_time(URL, api_key)
+    if new_start_string == None:
+        return starttime
+    # The YT API gives us a string representing a time in UTC
+    # The format is 'yyyy-mm-ddThh:mm:ddZ'
+
+    new_start_s2 = str(new_start_string) + "+0000" # Format as UTC, then parse
+    new_start = datetime.datetime.strptime(new_start_s2,
+                                                "%Y-%m-%dT%H:%M:%SZ%z")
+
+    if new_start == None:
+        return starttime
+    else:
+        # Now that we have new_start, adjust the start time
+        new_delta = starttime - new_start
+        as_sec = int(new_delta.total_seconds())
+        print(f'Start time adjusted by {str(as_sec)}')
+              #+ f', from {str(starttime)} to {new_start}')
+        
+        tag_n = len(tag_dict.keys())
+        if tag_n > 0 and abs(as_sec) > 2:
+            sure_char = input(f'Adjust {str(tag_n)} existing tags? ').lower()[:1]
+            if sure_char in ['y']:
+                offset_n = offset_tags(-24*3600, int(as_sec))
+                print(f'{str(as_sec)} second offset applied to {str(offset_n)} tags')
+            else:
+                print(f'{str(tag_n)} tags not adjusted')
+        return new_start
+
 
 ## main method execution
 
 
-starttime = datetime.datetime.now()
+starttime = datetime.datetime.now(datetime.timezone.utc)
 tag_dict = {}
 
 active = True
@@ -252,12 +323,20 @@ while active:
                 delete_tag(del_index)
             except (IndexError, ValueError):
                 print(f'Invalid argument(s). Format: !delete_back index_from_end')
+        elif cmd_word == "yt_start":
+            try:
+                url_id = trim_yt_url(str(command_parts[1]))
+                API_KEY = "" ### Place your API key here!
+                starttime = adjust_start(url_id, API_KEY, starttime)
+            except (IndexError, ValueError):
+                print(f'Invalid argument(s). Format: !yt_start yt_url')
         else:
             print("Invalid command")
 
     # any text entered without ! is assumed to be a tag           
     else:
-        ct = datetime.datetime.now() - starttime # ct is a timedelta
+        ct = datetime.datetime.now(datetime.timezone.utc) - starttime
+        # ct is a timedelta, not a datetime
         tt, st = tagtime_times(ct) # now they are a formatted string and int
         real_tagtime = add_tag(TagTime(tt, st), cur_string)
         print(real_tagtime + " " + cur_string)
